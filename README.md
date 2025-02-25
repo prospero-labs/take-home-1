@@ -47,8 +47,7 @@ Your task is to create HTTP API endpoints for managing bookings. Create the foll
 - `GET /bookings`: Retrieve a list of all bookings
 - `GET /bookings/:id`: Retrieve a specific booking
 - `DELETE /bookings/:id`: Delete a booking
-- `POST /bookings/:id/approve`: Approve a booking
-  - _**Optional:** send an email to the booking contact notifying them of the approval_
+- `POST /bookings/:id/approve`: Approve a booking and send an email to the booking contact notifying them of the approval (you may mock a 3rd-party email API)
 
 Requirements:
 
