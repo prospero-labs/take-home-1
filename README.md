@@ -53,7 +53,7 @@ Requirements:
 
 - Use TypeScript
 - Use JSON for I/O
-- Use MySQL for the DB
+- Use a SQL database (MySQL, PostgreSQL, SQLite, etc.)
 
 ## Developing
 
