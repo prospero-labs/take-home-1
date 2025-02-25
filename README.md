@@ -54,3 +54,22 @@ Requirements:
 - Use TypeScript
 - Use JSON for I/O
 - Use MySQL for the DB
+
+## Developing
+
+Fork this repository and make changes on your fork.
+
+This repository has been initialized with a basic hot-reloading node script. You can start by running the following commands:
+
+```bash
+npm install
+npm start
+```
+
+The script will re-run whenever you save changes to the source files.
+
+Use whatever server runtime environment you are most comfortable with. Install whatever dependencies you need.
+
+Our work is highly collaborative and often ambiguous- we encourage you to ask clarifying questions via the Slack channel we opened!
+
+When you are ready to submit your work, create a pull request against the `main` branch of this repository.
