@@ -1,5 +1,8 @@
 import { Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
+import { formatDate } from '../utils';
+import FormData from 'form-data';
+import Mailgun from 'mailgun.js';
 import db from '../db';
 import { Booking, BookingRow, BookingStatus } from '../types';
 
@@ -114,7 +117,7 @@ const getBooking = (req: Request, res: Response) => {
   });
 };
 
-//POST new booking
+// POST new booking
 const createBooking = (req: Request, res: Response) => {
   const sql = `INSERT INTO bookings (
     org_id,
@@ -182,7 +185,7 @@ const createBooking = (req: Request, res: Response) => {
   );
 };
 
-//DELETE booking
+// DELETE booking
 const deleteBooking = (req: Request, res: Response) => {
   const sql = `DELETE FROM bookings WHERE id=?`;
 
@@ -219,4 +222,88 @@ const deleteBooking = (req: Request, res: Response) => {
   });
 };
 
-export { getAllBookings, getBooking, createBooking, deleteBooking };
+// APPROVE booking and send email to booking contact
+const approveBooking = (req: Request, res: Response) => {
+  const sql = `SELECT * FROM bookings WHERE id=?`;
+
+  //The booking id from the params
+  const { id } = req.params;
+
+  db.get(sql, [id], async (err, row: BookingRow) => {
+    if (err) {
+      console.log(
+        `[error] Error while getting booking ${id}, error message: \n ${err.message}`
+      );
+      return res.status(500).json({
+        status: 500,
+        message: `Error while getting the booking id: ${id}`,
+        data: [],
+      });
+    }
+
+    // No data in the table
+    if (!row) {
+      console.log(`[info] No booking with id: ${id} found`);
+      return res.status(404).json({
+        status: 404,
+        message: `No booking with id: ${id} found`,
+        data: [],
+      });
+    }
+
+    //Send email logic - mailgun
+    const mailgun = new Mailgun(FormData);
+    const mg = mailgun.client({
+      username: 'prospero',
+      key: process.env.MAILGUN_API_KEY || 'API_KEY',
+    });
+
+    try {
+      const data = await mg.messages.create(
+        'sandbox3e3b7c05691c447685c33a057e28fff0.mailgun.org',
+        {
+          from: 'Mailgun Sandbox <postmaster@sandbox3e3b7c05691c447685c33a057e28fff0.mailgun.org>',
+          // I will keep it hardcoded because I only approved my email address to receive emails
+          to: ['Alessio Mazzella <alessiomazzella00@icloud.com>'],
+          subject: `Booking Confirmation - ${row.event_title}`,
+          text: `
+          Dear ${row.contact_name},
+
+          Your room booking has been confirmed. Here are the details of your reservation:
+
+          Event: ${row.event_title}
+          Date: ${formatDate(row.event_start)} to ${formatDate(row.event_end)}
+          Details: ${row.event_details}
+          ${row.request_note ? `\nAdditional Notes: ${row.request_note}` : ''}
+
+          If you need to make any changes to your booking or have any questions, please don't hesitate to contact us.
+
+          Thank you for your booking!
+
+          Best regards,
+          Prospero`,
+        }
+      );
+
+      console.log(`[info] mailgun info: ${JSON.stringify(data)}`);
+    } catch (err) {
+      console.log(
+        `[error] it was not possible to send the confirmation email, error message: \n ${err}`
+      );
+      return;
+    }
+
+    res.status(200).json({
+      status: 200,
+      message: `Confirmation email to ${row.contact_email} for booking id:${id} sent`,
+    });
+  });
+};
+
+export {
+  getAllBookings,
+  getBooking,
+  createBooking,
+  deleteBooking,
+  approveBooking,
+};
