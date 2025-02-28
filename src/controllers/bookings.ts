@@ -57,6 +57,63 @@ const getAllBookings = (req: Request, res: Response) => {
   });
 };
 
+// GET booking
+const getBooking = (req: Request, res: Response) => {
+  const sql = `SELECT * FROM bookings WHERE id=?`;
+
+  //The booking id from the params
+  const { id } = req.params;
+
+  db.get(sql, [id], (err, row: BookingRow) => {
+    if (err) {
+      console.log(
+        `[error] Error while getting booking ${id}, error message: \n ${err.message}`
+      );
+      return res.status(500).json({
+        status: 500,
+        message: `Error while getting the booking id: ${id}`,
+        data: [],
+      });
+    }
+
+    // No data in the table
+    if (!row) {
+      console.log(`[info] No booking with id: ${id} found`);
+      return res.status(404).json({
+        status: 404,
+        message: `No booking with id: ${id} found`,
+        data: [],
+      });
+    }
+
+    const data: Booking = {
+      id: row.id,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+      orgId: row.org_id,
+      status: row.status_id,
+      contact: {
+        name: row.contact_name,
+        email: row.contact_email,
+      },
+      event: {
+        title: row.event_title,
+        locationId: row.event_location_id,
+        start: row.event_start,
+        end: row.event_end,
+        details: row.event_details,
+      },
+      requestNote: row.request_note || undefined,
+    };
+
+    res.status(200).json({
+      status: 200,
+      message: `Retrieved booking id: ${id} data`,
+      data,
+    });
+  });
+};
+
 //POST new booking
 const createBooking = (req: Request, res: Response) => {
   const sql = `INSERT INTO bookings (
@@ -125,4 +182,4 @@ const createBooking = (req: Request, res: Response) => {
   );
 };
 
-export { getAllBookings, createBooking };
+export { getAllBookings, createBooking, getBooking };
