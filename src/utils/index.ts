@@ -36,7 +36,8 @@ async function sendConfirmationEmail(booking: BookingRow) {
       'sandbox3e3b7c05691c447685c33a057e28fff0.mailgun.org',
       {
         from: 'Mailgun Sandbox <postmaster@sandbox3e3b7c05691c447685c33a057e28fff0.mailgun.org>',
-        // I will keep it hardcoded because I only approved my email address to receive emails
+        // I will keep it hardcoded because I only approved my email address to receive emails from mailgun
+        // so I guess you have to call me to the office to check if it works ;)
         to: ['Alessio Mazzella <alessiomazzella00@icloud.com>'],
         subject: `Booking Confirmation - ${booking.event_title}`,
         text: `
