@@ -182,4 +182,41 @@ const createBooking = (req: Request, res: Response) => {
   );
 };
 
-export { getAllBookings, createBooking, getBooking };
+//DELETE booking
+const deleteBooking = (req: Request, res: Response) => {
+  const sql = `DELETE FROM bookings WHERE id=?`;
+
+  //The booking id from the params
+  const { id } = req.params;
+
+  db.run(sql, [id], function (err) {
+    if (err) {
+      console.log(
+        `[error] Error while deleting booking ${id}, error message: \n ${err.message}`
+      );
+      return res.status(500).json({
+        status: 500,
+        message: `Error while deleting booking id: ${id}`,
+        data: [],
+      });
+    }
+
+    // changes === 0 it means that nothing happened in the table
+    if (this.changes === 0) {
+      console.log(
+        `[info] The booking id:${id} does not exist or has already been deleted`
+      );
+      return res.status(404).json({
+        status: 404,
+        message: `The booking id:${id} does not exist or has already been deleted`,
+      });
+    }
+
+    res.status(200).json({
+      status: 200,
+      message: `Deleted booking id:${id}`,
+    });
+  });
+};
+
+export { getAllBookings, getBooking, createBooking, deleteBooking };
