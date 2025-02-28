@@ -8,29 +8,29 @@ const db = new sql3.Database(
   (err: Error | null) => {
     if (err) {
       console.log(
-        `Error while creating the SQLite DB, error message: \n ${err.message}`
+        `[error] Error while creating the SQLite DB, error message: \n ${err.message}`
       );
       return;
     }
 
-    console.log(`Created SQLite DB or already exists`);
+    console.log(`[info] Created SQLite DB or already exists`);
   }
 );
 
 const createBookingsTableQuery = `
   CREATE TABLE IF NOT EXISTS bookings (
-    id INTEGER PRIMARY KEY AUTOINCREASE,
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
     created_at TEXT NOT NULL DEFAULT (Datetime('now')),
     updated_at TEXT NOT NULL DEFAULT (Datetime('now')),
     org_id TEXT NOT NULL,
     status_id INTEGER NOT NULL,
-    name TEXT NOT NULL,
-    email TEXT NOT NULL,
-    title TEXT NOT NULL,
-    location_id TEXT NOT NULL,
-    start TEXT NOT NULL,
-    end TEXT NOT NULL,
-    details TEXT NOT NULL,
+    contact_name TEXT NOT NULL,
+    contact_email TEXT NOT NULL,
+    event_title TEXT NOT NULL,
+    event_location_id TEXT NOT NULL,
+    event_start TEXT NOT NULL,
+    event_end TEXT NOT NULL,
+    event_details TEXT NOT NULL,
     request_note TEXT,
     FOREIGN KEY (status_id) REFERENCES booking_status(id)
   )
@@ -56,36 +56,36 @@ db.serialize(() => {
   db.run(createBookingsTableQuery, [], (err) => {
     if (err) {
       console.log(
-        `Error while creating the bookings table, error message: \n ${err.message}`
+        `[error] Error while creating the bookings table, error message: \n ${err.message}`
       );
       return;
     }
 
-    console.log(`bookings table correctly created`);
+    console.log(`[info] bookings table correctly created`);
   });
 
   // Create the booking_status table
   db.run(createBookingStatusTable, [], (err) => {
     if (err) {
       console.log(
-        `Error while creating the booking_status table, error message: \n ${err.message}`
+        `[error] Error while creating the booking_status table, error message: \n ${err.message}`
       );
       return;
     }
 
-    console.log(`booking_status table correctly created`);
+    console.log(`[info] booking_status table correctly created`);
   });
 
   // Populate the booking_status table
   db.run(populateBookingStatusTable, [], (err) => {
     if (err) {
       console.log(
-        `Error while populating the booking_status table, error message: \n ${err.message}`
+        `[error] Error while populating the booking_status table, error message: \n ${err.message}`
       );
       return;
     }
 
-    console.log(`booking_status table correctly populated`);
+    console.log(`[info] booking_status table correctly populated`);
   });
 });
 

@@ -25,13 +25,13 @@ export interface BookingRow {
   updated_at: string;
   org_id: string;
   status_id: number;
-  name: string;
-  email: string;
-  title: string;
-  location_id: string;
-  start: string;
-  end: string;
-  details: string;
+  contact_name: string;
+  contact_email: string;
+  event_title: string;
+  event_location_id: string;
+  event_start: string;
+  event_end: string;
+  event_details: string;
   request_note?: string | null;
 }
 
