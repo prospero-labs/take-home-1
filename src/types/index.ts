@@ -1,4 +1,4 @@
-interface Booking {
+export interface Booking {
   id: Id;
   createdAt: ISO8601DateTime;
   updatedAt: ISO8601DateTime;
@@ -18,13 +18,30 @@ interface Booking {
   requestNote?: string;
 }
 
+// Flatten the Booking interface
+export interface BookingRow {
+  id: string;
+  created_at: string;
+  updated_at: string;
+  org_id: string;
+  status_id: number;
+  name: string;
+  email: string;
+  title: string;
+  location_id: string;
+  start: string;
+  end: string;
+  details: string;
+  request_note?: string | null;
+}
+
 /** A UUID */
 type Id = string;
 
 /** A UTC datetime string, formatted as YYYY-MM-DDThh:mm:ssZ */
 type ISO8601DateTime = string;
 
-enum BookingStatus {
+export enum BookingStatus {
   PENDING = 0,
   APPROVED = 1,
   DENIED = 2,
