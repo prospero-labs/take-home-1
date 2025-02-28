@@ -222,6 +222,94 @@ const deleteBooking = (req: Request, res: Response) => {
   });
 };
 
+// PATCH booking
+const editBooking = (req: Request, res: Response) => {
+  const getPreviousBookingSql = `SELECT * FROM bookings WHERE id=?`;
+  const updateBookingSql = `UPDATE bookings SET
+    updated_at = ?,
+    status_id = ?,
+    contact_name = ?,
+    contact_email = ?,
+    event_title = ?,
+    event_start = ?,
+    event_end = ?,
+    event_details = ?,
+    request_note = ?
+    WHERE id=?`;
+
+  //The booking id from the params
+  const { id } = req.params;
+  db.get(getPreviousBookingSql, [id], (err, row: BookingRow) => {
+    if (err) {
+      console.log(
+        `[error] Error while getting booking ${id}, error message: \n ${err.message}`
+      );
+      return res.status(500).json({
+        status: 500,
+        message: `Error while getting the booking id: ${id}`,
+        data: [],
+      });
+    }
+
+    // No data in the table
+    if (!row) {
+      console.log(`[info] No booking with id: ${id} found`);
+      return res.status(404).json({
+        status: 404,
+        message: `No booking with id: ${id} found`,
+        data: [],
+      });
+    }
+
+    // Merge existing data with updates
+    const updates = {
+      updated_at: new Date().toISOString(),
+      status_id: req.body.status_id ?? row.status_id,
+      contact_name: req.body.contact_name ?? row.contact_name,
+      contact_email: req.body.contact_email ?? row.contact_email,
+      event_title: req.body.event_title ?? row.event_title,
+      event_start: req.body.event_start ?? row.event_start,
+      event_end: req.body.event_end ?? row.event_end,
+      event_details: req.body.event_details ?? row.event_details,
+      request_note: req.body.request_note ?? row.request_note,
+    };
+
+    db.run(
+      updateBookingSql,
+      [
+        updates.updated_at,
+        updates.status_id,
+        updates.contact_name,
+        updates.contact_email,
+        updates.event_title,
+        updates.event_start,
+        updates.event_end,
+        updates.event_details,
+        updates.request_note,
+        id,
+      ],
+      (err) => {
+        if (err) {
+          console.log(
+            `[error] Error while editing booking ${id}, error message: \n ${err.message}`
+          );
+          return res.status(500).json({
+            status: 500,
+            message: `Error while editing the booking id: ${id}`,
+            data: [],
+          });
+        }
+
+        res.status(200).json({
+          status: 200,
+          message: `Updated booking id: ${id} with new data`,
+          data: updates,
+        });
+      }
+    );
+  });
+};
+
 // APPROVE booking and send email to booking contact
 const approveBooking = (req: Request, res: Response) => {
   const sql = `SELECT * FROM bookings WHERE id=?`;
@@ -305,5 +393,6 @@ export {
   getBooking,
   createBooking,
   deleteBooking,
+  editBooking,
   approveBooking,
 };
