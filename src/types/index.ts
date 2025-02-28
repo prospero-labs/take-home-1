@@ -20,17 +20,17 @@ export interface Booking {
 
 // Flatten the Booking interface
 export interface BookingRow {
-  id: string;
-  created_at: string;
-  updated_at: string;
-  org_id: string;
-  status_id: number;
+  id: Id;
+  created_at: ISO8601DateTime;
+  updated_at: ISO8601DateTime;
+  org_id: Id;
+  status_id: BookingStatus;
   contact_name: string;
   contact_email: string;
   event_title: string;
-  event_location_id: string;
-  event_start: string;
-  event_end: string;
+  event_location_id: Id;
+  event_start: ISO8601DateTime;
+  event_end: ISO8601DateTime;
   event_details: string;
   request_note?: string | null;
 }

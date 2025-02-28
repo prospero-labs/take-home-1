@@ -269,7 +269,11 @@ const editBooking = (req: Request, res: Response) => {
       event_start: req.body.event_start ?? row.event_start,
       event_end: req.body.event_end ?? row.event_end,
       event_details: req.body.event_details ?? row.event_details,
-      request_note: req.body.request_note ?? row.request_note,
+      request_note: req.body.hasOwnProperty('request_note')
+        ? req.body.request_note === null
+          ? undefined
+          : req.body.request_note
+        : row.request_note,
     };
 
     db.run(
