@@ -20,8 +20,8 @@ const db = new sql3.Database(
 const createBookingsTableQuery = `
   CREATE TABLE IF NOT EXISTS bookings (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    created_at TEXT NOT NULL DEFAULT (Datetime('now')),
-    updated_at TEXT NOT NULL DEFAULT (Datetime('now')),
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+    updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
     org_id TEXT NOT NULL,
     status_id INTEGER NOT NULL,
     contact_name TEXT NOT NULL,

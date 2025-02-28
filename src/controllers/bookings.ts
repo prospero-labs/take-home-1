@@ -1,8 +1,9 @@
 import { Request, Response } from 'express';
+import { v4 as uuidv4 } from 'uuid';
 import db from '../db';
-import { Booking, BookingRow } from '../types';
+import { Booking, BookingRow, BookingStatus } from '../types';
 
-// GET ALL query
+// GET ALL bookings
 const getAllBookings = (req: Request, res: Response) => {
   const sql = `SELECT * FROM bookings`;
 
@@ -56,4 +57,72 @@ const getAllBookings = (req: Request, res: Response) => {
   });
 };
 
-export { getAllBookings };
+//POST new booking
+const createBooking = (req: Request, res: Response) => {
+  const sql = `INSERT INTO bookings (
+    org_id,
+    status_id,
+    contact_name,
+    contact_email,
+    event_title,
+    event_location_id,
+    event_start,
+    event_end,
+    event_details,
+    request_note
+  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+
+  const {
+    contact_name,
+    contact_email,
+    event_title,
+    event_start,
+    event_end,
+    event_details,
+    request_note,
+  } = req.body;
+
+  // Formatting the event_start and event_end to reflect the ISO8601DateTime type requirement
+  const eventStartDateFormatted = new Date(event_start).toISOString();
+  const eventEndDateFormatted = new Date(event_end).toISOString();
+
+  // Created random id for org_id and event_location_id
+  const orgId = uuidv4();
+  const eventLocationId = uuidv4();
+
+  // By default the status_id is 0 => PENDING
+  // Use of the function because of this.lastID
+  db.run(
+    sql,
+    [
+      orgId,
+      BookingStatus.PENDING,
+      contact_name,
+      contact_email,
+      event_title,
+      eventLocationId,
+      eventStartDateFormatted,
+      eventEndDateFormatted,
+      event_details,
+      request_note,
+    ],
+    function (err) {
+      if (err) {
+        console.log(`[error] Error while creating a new booking`);
+        return res.status(500).json({
+          status: 500,
+          message: 'Error while creating a new booking',
+        });
+      }
+
+      const lastId = this.lastID;
+
+      res.status(200).json({
+        status: 200,
+        message: `New booking with booking id: ${lastId} created`,
+      });
+    }
+  );
+};
+
+export { getAllBookings, createBooking };
