@@ -1,10 +1,8 @@
 import { Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
-import { formatDate } from '../utils';
-import FormData from 'form-data';
-import Mailgun from 'mailgun.js';
 import db from '../db';
 import { Booking, BookingRow, BookingStatus } from '../types';
+import { sendConfirmationEmail } from '../utils';
 
 // GET ALL bookings
 const getAllBookings = (req: Request, res: Response) => {
@@ -339,47 +337,8 @@ const approveBooking = (req: Request, res: Response) => {
       });
     }
 
-    //Send email logic - mailgun
-    const mailgun = new Mailgun(FormData);
-    const mg = mailgun.client({
-      username: 'prospero',
-      key: process.env.MAILGUN_API_KEY || 'API_KEY',
-    });
-
-    try {
-      const data = await mg.messages.create(
-        'sandbox3e3b7c05691c447685c33a057e28fff0.mailgun.org',
-        {
-          from: 'Mailgun Sandbox <postmaster@sandbox3e3b7c05691c447685c33a057e28fff0.mailgun.org>',
-          // I will keep it hardcoded because I only approved my email address to receive emails
-          to: ['Alessio Mazzella <alessiomazzella00@icloud.com>'],
-          subject: `Booking Confirmation - ${row.event_title}`,
-          text: `
-          Dear ${row.contact_name},
-
-          Your room booking has been confirmed. Here are the details of your reservation:
-
-          Event: ${row.event_title}
-          Date: ${formatDate(row.event_start)} to ${formatDate(row.event_end)}
-          Details: ${row.event_details}
-          ${row.request_note ? `\nAdditional Notes: ${row.request_note}` : ''}
-
-          If you need to make any changes to your booking or have any questions, please don't hesitate to contact us.
-
-          Thank you for your booking!
-
-          Best regards,
-          Prospero`,
-        }
-      );
-
-      console.log(`[info] mailgun info: ${JSON.stringify(data)}`);
-    } catch (err) {
-      console.log(
-        `[error] it was not possible to send the confirmation email, error message: \n ${err}`
-      );
-      return;
-    }
+    //Send email - mailgun
+    await sendConfirmationEmail(row);
 
     res.status(200).json({
       status: 200,
