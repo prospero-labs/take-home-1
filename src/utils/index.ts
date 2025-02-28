@@ -24,31 +24,33 @@ function formatDate(date: string | Date): string {
   }
 }
 
-async function sendConfirmationEmail(booking: BookingRow) {
+async function sendConfirmationEmail(booking: BookingRow): Promise<boolean> {
   const mailgun = new Mailgun(FormData);
   const mg = mailgun.client({
-    username: 'prospero',
+    username: process.env.MAILGUN_USERNAME || 'api',
     key: process.env.MAILGUN_API_KEY || 'API_KEY',
   });
 
+  // Validate required environment variables
+  if (!process.env.MAILGUN_API_KEY || !process.env.MAILGUN_DOMAIN) {
+    console.error('[error] Missing required Mailgun configuration');
+    return false;
+  }
+
   try {
-    const data = await mg.messages.create(
-      'sandbox3e3b7c05691c447685c33a057e28fff0.mailgun.org',
-      {
-        from: 'Mailgun Sandbox <postmaster@sandbox3e3b7c05691c447685c33a057e28fff0.mailgun.org>',
-        // I will keep it hardcoded because I only approved my email address to receive emails from mailgun
-        // so I guess you have to call me to the office to check if it works ;)
-        to: ['Alessio Mazzella <alessiomazzella00@icloud.com>'],
-        subject: `Booking Confirmation - ${booking.event_title}`,
-        text: `
+    const data = await mg.messages.create(process.env.MAILGUN_DOMAIN, {
+      from: `Prospero Bookings <postmaster@${process.env.MAILGUN_DOMAIN}>`,
+      to: [booking.contact_email],
+      subject: `Booking Confirmation - ${booking.event_title}`,
+      text: `
         Dear ${booking.contact_name},
 
         Your room booking has been confirmed. Here are the details of your reservation:
 
         Event: ${booking.event_title}
         Date: ${formatDate(booking.event_start)} to ${formatDate(
-          booking.event_end
-        )}
+        booking.event_end
+      )}
         Details: ${booking.event_details}
         ${
           booking.request_note
@@ -62,15 +64,15 @@ async function sendConfirmationEmail(booking: BookingRow) {
 
         Best regards,
         Prospero`,
-      }
-    );
+    });
 
     console.log(`[info] mailgun info: ${JSON.stringify(data)}`);
+    return true;
   } catch (err) {
-    console.log(
+    console.error(
       `[error] it was not possible to send the confirmation email, error message: \n ${err}`
     );
-    return;
+    return false;
   }
 }
 

@@ -341,8 +341,13 @@ const approveBooking = (req: Request, res: Response) => {
       });
     }
 
-    //Send email - mailgun
-    await sendConfirmationEmail(row);
+    const emailSent = await sendConfirmationEmail(row);
+    if (!emailSent) {
+      return res.status(500).json({
+        status: 500,
+        message: `Failed to send confirmation email for booking id: ${id}`,
+      });
+    }
 
     res.status(200).json({
       status: 200,
