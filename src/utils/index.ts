@@ -1,7 +1,8 @@
 import FormData from 'form-data';
 import Mailgun from 'mailgun.js';
-import { BookingRow } from '../types';
+import { Booking, BookingRow } from '../types';
 import db from '../db';
+import { Response } from 'express';
 
 // Format date in a human readable way
 function formatDate(date: string | Date): string {
@@ -105,4 +106,46 @@ async function getPrivateId(id: string): Promise<number> {
   });
 }
 
-export { formatDate, sendConfirmationEmail, getPrivateId };
+//Helper function to map database row to Booking object
+const mapRowToBooking = (row: BookingRow): Booking => ({
+  id: row.id,
+  createdAt: row.created_at,
+  updatedAt: row.updated_at,
+  orgId: row.org_id,
+  status: row.status_id,
+  contact: {
+    name: row.contact_name,
+    email: row.contact_email,
+  },
+  event: {
+    title: row.event_title,
+    locationId: row.event_location_id,
+    start: row.event_start,
+    end: row.event_end,
+    details: row.event_details,
+  },
+  requestNote: row.request_note || undefined,
+});
+
+//Helper function to handle common database errors
+const handleDbError =
+  (res: Response, operation: string, id?: string) => (err: Error) => {
+    const idMsg = id ? ` ${id}` : '';
+    console.log(
+      `[error] Error while ${operation}${idMsg}, error message: \n ${err.message}`
+    );
+
+    res.status(500).json({
+      status: 500,
+      message: `Error while ${operation}${idMsg}`,
+      data: [],
+    });
+  };
+
+export {
+  formatDate,
+  sendConfirmationEmail,
+  getPrivateId,
+  mapRowToBooking,
+  handleDbError,
+};

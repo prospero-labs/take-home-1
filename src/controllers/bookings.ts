@@ -2,7 +2,12 @@ import { Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import db from '../db';
 import { Booking, BookingRow, BookingStatus } from '../types';
-import { getPrivateId, sendConfirmationEmail } from '../utils';
+import {
+  getPrivateId,
+  handleDbError,
+  mapRowToBooking,
+  sendConfirmationEmail,
+} from '../utils';
 
 // GET ALL bookings
 const getAllBookings = (req: Request, res: Response) => {
@@ -10,45 +15,22 @@ const getAllBookings = (req: Request, res: Response) => {
 
   db.all(sql, [], (err, rows: BookingRow[]) => {
     if (err) {
-      console.log(
-        `[error] Error while getting all the bookings, error message: \n ${err.message}`
-      );
-      return res.status(500).json({
-        status: 500,
-        message: 'Error while getting all the bookings',
-        data: [],
-      });
+      handleDbError(res, 'getting all the bookings')(err);
+      return;
     }
 
     // No data in the table
     if (!rows || rows.length === 0) {
       console.log(`[info] No data found for bookings table`);
-      return res.status(404).json({
+      res.status(404).json({
         status: 404,
         message: 'No data for the bookings table',
         data: [],
       });
+      return;
     }
 
-    const data: Booking[] = rows.map((row) => ({
-      id: row.id,
-      createdAt: row.created_at,
-      updatedAt: row.updated_at,
-      orgId: row.org_id,
-      status: row.status_id,
-      contact: {
-        name: row.contact_name,
-        email: row.contact_email,
-      },
-      event: {
-        title: row.event_title,
-        locationId: row.event_location_id,
-        start: row.event_start,
-        end: row.event_end,
-        details: row.event_details,
-      },
-      requestNote: row.request_note || undefined,
-    }));
+    const data: Booking[] = rows.map(mapRowToBooking);
 
     res.status(200).json({
       status: 200,
@@ -61,7 +43,6 @@ const getAllBookings = (req: Request, res: Response) => {
 // GET booking
 const getBooking = async (req: Request, res: Response) => {
   const sql = `SELECT * FROM bookings WHERE private_id=?`;
-  //The booking id from the params
   const { id } = req.params;
 
   try {
@@ -69,14 +50,7 @@ const getBooking = async (req: Request, res: Response) => {
 
     db.get(sql, [private_id], (err, row: BookingRow) => {
       if (err) {
-        console.log(
-          `[error] Error while getting data for booking ${id}, error message: \n ${err.message}`
-        );
-        res.status(500).json({
-          status: 500,
-          message: `Error while getting the booking id: ${id}`,
-          data: [],
-        });
+        handleDbError(res, 'getting the booking id:', id)(err);
         return;
       }
 
@@ -91,25 +65,7 @@ const getBooking = async (req: Request, res: Response) => {
         return;
       }
 
-      const data: Booking = {
-        id: row.id,
-        createdAt: row.created_at,
-        updatedAt: row.updated_at,
-        orgId: row.org_id,
-        status: row.status_id,
-        contact: {
-          name: row.contact_name,
-          email: row.contact_email,
-        },
-        event: {
-          title: row.event_title,
-          locationId: row.event_location_id,
-          start: row.event_start,
-          end: row.event_end,
-          details: row.event_details,
-        },
-        requestNote: row.request_note || undefined,
-      };
+      const data = mapRowToBooking(row);
 
       res.status(200).json({
         status: 200,
@@ -126,14 +82,12 @@ const getBooking = async (req: Request, res: Response) => {
           message: err.message,
           data: [],
         });
-        return;
       } else {
         res.status(500).json({
           status: 500,
           message: err.message,
           data: [],
         });
-        return;
       }
     }
   }
@@ -165,66 +119,80 @@ const createBooking = (req: Request, res: Response) => {
     request_note,
   } = req.body;
 
-  // Formatting the event_start and event_end to reflect the ISO8601DateTime type requirement
-  const eventStartDateFormatted = new Date(event_start).toISOString();
-  const eventEndDateFormatted = new Date(event_end).toISOString();
+  // Validate required fields
+  if (
+    !contact_name ||
+    !contact_email ||
+    !event_title ||
+    !event_start ||
+    !event_end
+  ) {
+    res.status(400).json({
+      status: 400,
+      message: 'Missing required fields for booking',
+    });
+    return;
+  }
 
-  // Created random id for org_id and event_location_id
-  const id = uuidv4();
-  const orgId = uuidv4();
-  const eventLocationId = uuidv4();
+  try {
+    // Formatting the event_start and event_end to reflect the ISO8601DateTime type requirement
+    const eventStartDateFormatted = new Date(event_start).toISOString();
+    const eventEndDateFormatted = new Date(event_end).toISOString();
 
-  // By default the status_id is 0 => PENDING
-  db.run(
-    sql,
-    [
-      id,
-      orgId,
-      BookingStatus.PENDING,
-      contact_name,
-      contact_email,
-      event_title,
-      eventLocationId,
-      eventStartDateFormatted,
-      eventEndDateFormatted,
-      event_details,
-      request_note,
-    ],
-    function (err) {
-      if (err) {
-        console.log(`[error] Error while creating a new booking`);
-        return res.status(500).json({
-          status: 500,
-          message: 'Error while creating a new booking',
+    // Created random id for org_id and event_location_id
+    const id = uuidv4();
+    const orgId = uuidv4();
+    const eventLocationId = uuidv4();
+
+    // By default the status_id is 0 => PENDING
+    db.run(
+      sql,
+      [
+        id,
+        orgId,
+        BookingStatus.PENDING,
+        contact_name,
+        contact_email,
+        event_title,
+        eventLocationId,
+        eventStartDateFormatted,
+        eventEndDateFormatted,
+        event_details,
+        request_note,
+      ],
+      function (err) {
+        if (err) {
+          handleDbError(res, 'creating a new booking')(err);
+          return;
+        }
+
+        res.status(201).json({
+          status: 201,
+          message: `New booking with booking id: ${id} created`,
+          data: { id },
         });
       }
-
-      res.status(200).json({
-        status: 200,
-        message: `New booking with booking id: ${id} created`,
-      });
-    }
-  );
+    );
+  } catch (error) {
+    console.log(`[error] Invalid date format: ${error}`);
+    res.status(400).json({
+      status: 400,
+      message: 'Invalid date format provided',
+    });
+  }
 };
 
 // DELETE booking
 const deleteBooking = async (req: Request, res: Response) => {
   const sql = `DELETE FROM bookings WHERE private_id=?`;
-
-  //The booking id from the params
   const { id } = req.params;
+
   try {
     const private_id = await getPrivateId(id);
 
     db.run(sql, [private_id], function (err) {
       if (err) {
-        console.log(
-          `[error] Error while deleting booking ${id}, error message: \n ${err.message}`
-        );
-        res.status(500).json({
-          status: 500,
-          message: `Error while deleting booking id: ${id}`,
-        });
+        handleDbError(res, 'deleting booking id:', id)(err);
         return;
       }
 
@@ -246,7 +214,6 @@ const deleteBooking = async (req: Request, res: Response) => {
       });
     });
   } catch (err) {
-    // Make sure it's Error before accessing the message property
     if (err instanceof Error) {
       if (err.message.includes('No booking')) {
         res.status(404).json({
@@ -254,14 +221,12 @@ const deleteBooking = async (req: Request, res: Response) => {
           message: err.message,
           data: [],
         });
-        return;
       } else {
         res.status(500).json({
           status: 500,
           message: err.message,
           data: [],
         });
-        return;
       }
     }
   }
@@ -282,7 +247,6 @@ const editBooking = async (req: Request, res: Response) => {
     request_note = ?
     WHERE private_id=?`;
 
-  //The booking id from the params
   const { id } = req.params;
 
   try {
@@ -290,14 +254,7 @@ const editBooking = async (req: Request, res: Response) => {
 
     db.get(getPreviousBookingSql, [private_id], (err, row: BookingRow) => {
       if (err) {
-        console.log(
-          `[error] Error while getting booking ${id}, error message: \n ${err.message}`
-        );
-        res.status(500).json({
-          status: 500,
-          message: `Error while getting the booking id: ${id}`,
-          data: [],
-        });
+        handleDbError(res, 'getting booking id:', id)(err);
         return;
       }
 
@@ -312,6 +269,26 @@ const editBooking = async (req: Request, res: Response) => {
         return;
       }
 
+      // Handle date conversions for event_start and event_end if they are provided
+      let eventStart = row.event_start;
+      let eventEnd = row.event_end;
+
+      try {
+        if (req.body.event_start) {
+          eventStart = new Date(req.body.event_start).toISOString();
+        }
+        if (req.body.event_end) {
+          eventEnd = new Date(req.body.event_end).toISOString();
+        }
+      } catch (error) {
+        console.log(`[error] Invalid date format: ${error}`);
+        res.status(400).json({
+          status: 400,
+          message: 'Invalid date format provided',
+        });
+        return;
+      }
+
       // Merge existing data with updates
       const updates = {
         updated_at: new Date().toISOString(),
@@ -319,8 +296,8 @@ const editBooking = async (req: Request, res: Response) => {
         contact_name: req.body.contact_name ?? row.contact_name,
         contact_email: req.body.contact_email ?? row.contact_email,
         event_title: req.body.event_title ?? row.event_title,
-        event_start: req.body.event_start ?? row.event_start,
-        event_end: req.body.event_end ?? row.event_end,
+        event_start: eventStart,
+        event_end: eventEnd,
         event_details: req.body.event_details ?? row.event_details,
         request_note: req.body.hasOwnProperty('request_note')
           ? req.body.request_note === null
@@ -345,27 +322,33 @@ const editBooking = async (req: Request, res: Response) => {
         ],
         (err) => {
           if (err) {
-            console.log(
-              `[error] Error while editing booking ${id}, error message: \n ${err.message}`
-            );
-            res.status(500).json({
-              status: 500,
-              message: `Error while editing the booking id:${id}`,
-              data: [],
-            });
+            handleDbError(res, 'editing booking id:', id)(err);
             return;
           }
 
           res.status(200).json({
             status: 200,
             message: `Updated booking id:${id} with new data`,
-            data: updates,
+            data: {
+              id: row.id,
+              ...updates,
+              contact: {
+                name: updates.contact_name,
+                email: updates.contact_email,
+              },
+              event: {
+                title: updates.event_title,
+                locationId: row.event_location_id,
+                start: updates.event_start,
+                end: updates.event_end,
+                details: updates.event_details,
+              },
+            },
           });
         }
       );
     });
   } catch (err) {
-    // Make sure it's Error before accessing the message property
     if (err instanceof Error) {
       if (err.message.includes('No booking')) {
         res.status(404).json({
@@ -373,14 +356,12 @@ const editBooking = async (req: Request, res: Response) => {
           message: err.message,
           data: [],
         });
-        return;
       } else {
         res.status(500).json({
           status: 500,
           message: err.message,
           data: [],
         });
-        return;
       }
     }
   }
@@ -394,7 +375,6 @@ const approveBooking = async (req: Request, res: Response) => {
     updated_at = ?
     WHERE private_id=?`;
 
-  // The booking id from the params
   const { id } = req.params;
 
   try {
@@ -402,14 +382,7 @@ const approveBooking = async (req: Request, res: Response) => {
 
     db.get(getBookingSql, [private_id], async (err, row: BookingRow) => {
       if (err) {
-        console.log(
-          `[error] Error while getting booking ${id}, error message: \n ${err.message}`
-        );
-        res.status(500).json({
-          status: 500,
-          message: `Error while getting the booking id: ${id}`,
-          data: [],
-        });
+        handleDbError(res, 'getting booking id:', id)(err);
         return;
       }
 
@@ -424,6 +397,15 @@ const approveBooking = async (req: Request, res: Response) => {
         return;
       }
 
+      // Don't approve again if already approved
+      if (row.status_id === BookingStatus.APPROVED) {
+        res.status(400).json({
+          status: 400,
+          message: `Booking id:${id} is already approved`,
+        });
+        return;
+      }
+
       // Update booking status to APPROVED
       const updatedAt = new Date().toISOString();
 
@@ -432,13 +414,11 @@ const approveBooking = async (req: Request, res: Response) => {
         [BookingStatus.APPROVED, updatedAt, private_id],
         async (updateErr) => {
           if (updateErr) {
-            console.log(
-              `[error] Error while updating booking status ${id}, error message: \n ${updateErr.message}`
-            );
-            res.status(500).json({
-              status: 500,
-              message: `Error while updating booking status for id: ${id}`,
-            });
+            handleDbError(
+              res,
+              'updating booking status for id:',
+              id
+            )(updateErr);
             return;
           }
 
@@ -460,7 +440,6 @@ const approveBooking = async (req: Request, res: Response) => {
       );
     });
   } catch (err) {
-    // Make sure it's Error before accessing the message property
     if (err instanceof Error) {
       if (err.message.includes('No booking')) {
         res.status(404).json({
@@ -468,14 +447,12 @@ const approveBooking = async (req: Request, res: Response) => {
           message: err.message,
           data: [],
         });
-        return;
       } else {
         res.status(500).json({
           status: 500,
           message: err.message,
           data: [],
         });
-        return;
       }
     }
   }
