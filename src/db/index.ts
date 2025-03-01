@@ -19,7 +19,8 @@ const db = new sql3.Database(
 
 const createBookingsTableQuery = `
   CREATE TABLE IF NOT EXISTS bookings (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    private_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id TEXT NOT NULL UNIQUE,
     created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
     updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
     org_id TEXT NOT NULL,
@@ -38,17 +39,17 @@ const createBookingsTableQuery = `
 
 const createBookingStatusTable = `
   CREATE TABLE IF NOT EXISTS booking_status (
-    id TEXT PRIMARY KEY,
+    id INTEGER PRIMARY KEY,
     name TEXT NOT NULL
   )
 `;
 
 const populateBookingStatusTable = `
   INSERT OR IGNORE INTO booking_status (id, name) VALUES
-    ('0', 'PENDING'),
-    ('1', 'APPROVED'),
-    ('2', 'DENIED'),
-    ('3', 'CANCELLED')
+    (0, 'PENDING'),
+    (1, 'APPROVED'),
+    (2, 'DENIED'),
+    (3, 'CANCELLED')
 `;
 
 db.serialize(() => {
@@ -87,6 +88,9 @@ db.serialize(() => {
 
     console.log(`[info] booking_status table correctly populated`);
   });
+
+  // Make sure that booking_status references are enforced
+  db.run('PRAGMA foreign_keys = ON');
 });
 
 export default db;

@@ -1,7 +1,9 @@
 import FormData from 'form-data';
 import Mailgun from 'mailgun.js';
 import { BookingRow } from '../types';
+import db from '../db';
 
+// Format date in a human readable way
 function formatDate(date: string | Date): string {
   try {
     const dateObj = typeof date === 'string' ? new Date(date) : date;
@@ -76,4 +78,31 @@ async function sendConfirmationEmail(booking: BookingRow): Promise<boolean> {
   }
 }
 
-export { formatDate, sendConfirmationEmail };
+// Get the private_id starting from the public one
+async function getPrivateId(id: string): Promise<number> {
+  const lookupSql = `SELECT private_id FROM bookings WHERE id=?`;
+
+  return new Promise((resolve, reject) => {
+    db.get(lookupSql, [id], (err, row: BookingRow) => {
+      if (err) {
+        console.log(
+          `[error] Error while looking up booking ${id}, error message: \n ${err.message}`
+        );
+        reject(new Error(`Error while looking up the booking id: ${id}`));
+        return;
+      }
+
+      // No data in the table
+      if (!row) {
+        console.log(`[info] No booking with id: ${id} found`);
+        reject(new Error(`No booking with id: ${id} found`));
+        return;
+      }
+
+      // Resolve the promise with the private_id
+      resolve(row.private_id);
+    });
+  });
+}
+
+export { formatDate, sendConfirmationEmail, getPrivateId };

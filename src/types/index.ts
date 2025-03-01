@@ -1,4 +1,5 @@
-export interface Booking {
+export interface BookingDatabase {
+  private_id: PrivateId;
   id: Id;
   createdAt: ISO8601DateTime;
   updatedAt: ISO8601DateTime;
@@ -18,8 +19,11 @@ export interface Booking {
   requestNote?: string;
 }
 
+export interface Booking extends Omit<BookingDatabase, 'private_id'> {}
+
 // Flatten the Booking interface
 export interface BookingRow {
+  private_id: PrivateId;
   id: Id;
   created_at: ISO8601DateTime;
   updated_at: ISO8601DateTime;
@@ -34,6 +38,9 @@ export interface BookingRow {
   event_details: string;
   request_note?: string | null;
 }
+
+/* INTEGER in DB to make internal operations faster */
+export type PrivateId = number;
 
 /** A UUID */
 type Id = string;
