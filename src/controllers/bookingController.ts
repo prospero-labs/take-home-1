@@ -32,6 +32,25 @@ class BookingController {
         .json({ error: "An error occurred while retrieving booking" });
     }
   }
+
+  async deleteBookingById(req: Request, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const deleted = await bookingService.deleteBookingById(id);
+
+      if (deleted.length === 0) {
+        res.status(404).json({ error: "Booking not found" });
+        return;
+      }
+
+      res.json(deleted);
+    } catch (error) {
+      console.error("Error deleting booking:", error);
+      res
+        .status(500)
+        .json({ error: "An error occurred while deleting booking" });
+    }
+  }
 }
 
 export default new BookingController();

@@ -41,6 +41,15 @@ class BookingService {
     }
     return this.mapRowToBooking(result[0]);
   }
+
+  async deleteBookingById(id: string): Promise<{ deletedId: string }[]> {
+    const result = await db
+      .delete(bookings)
+      .where(eq(bookings.id, id))
+      .returning({ deletedId: bookings.id });
+
+    return result;
+  }
 }
 
 export default new BookingService();
