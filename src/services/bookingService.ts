@@ -1,6 +1,7 @@
 import db from "../db";
 import { bookings } from "../db/schema";
 import { Booking } from "../types/index";
+import { eq } from "drizzle-orm";
 
 class BookingService {
   // Map database row to Booking object
@@ -30,6 +31,15 @@ class BookingService {
     const result = await db.select().from(bookings).orderBy(bookings.createdAt);
 
     return result.map((row) => this.mapRowToBooking(row));
+  }
+
+  async getBookingById(id: string): Promise<Booking | null> {
+    const result = await db.select().from(bookings).where(eq(bookings.id, id));
+
+    if (result.length === 0) {
+      return null;
+    }
+    return this.mapRowToBooking(result[0]);
   }
 }
 

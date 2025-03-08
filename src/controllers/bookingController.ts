@@ -13,6 +13,25 @@ class BookingController {
         .json({ error: "An error occurred while retrieving bookings" });
     }
   }
+
+  async getBookingById(req: Request, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const booking = await bookingService.getBookingById(id);
+
+      if (!booking) {
+        res.status(404).json({ error: "Booking not found" });
+        return;
+      }
+
+      res.json(booking);
+    } catch (error) {
+      console.error("Error getting booking by ID:", error);
+      res
+        .status(500)
+        .json({ error: "An error occurred while retrieving booking" });
+    }
+  }
 }
 
 export default new BookingController();
