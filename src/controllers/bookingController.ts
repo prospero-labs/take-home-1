@@ -51,6 +51,28 @@ class BookingController {
         .json({ error: "An error occurred while deleting booking" });
     }
   }
+
+  async approveBookingById(req: Request, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const approvedBooking = await bookingService.approveBooking(id);
+
+      if (!approvedBooking) {
+        res.status(400).json({ error: "Cannot be approved" });
+        return;
+      }
+
+      res.json({
+        message: "Booking approved!",
+        approvedBooking,
+      });
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      console.error("Error Approving booking:", errorMessage);
+      res.status(500).json({ error: errorMessage });
+    }
+  }
 }
 
 export default new BookingController();

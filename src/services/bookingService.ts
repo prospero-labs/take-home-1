@@ -1,8 +1,7 @@
 import db from "../db";
 import { bookings } from "../db/schema";
-import { Booking } from "../types/index";
+import { Booking, BookingStatus } from "../types/index";
 import { eq } from "drizzle-orm";
-
 class BookingService {
   // Map database row to Booking object
   private mapRowToBooking(row: any): Booking {
@@ -49,6 +48,33 @@ class BookingService {
       .returning({ deletedId: bookings.id });
 
     return result;
+  }
+
+  async approveBooking(id: string): Promise<Booking | null> {
+    const booking = await this.getBookingById(id);
+
+    if (!booking) {
+      return null;
+    }
+    console.log(booking.status);
+
+    const values = Object.values(BookingStatus);
+    //get PENDING status from ENUM as string
+    if (booking.status !== values[BookingStatus["PENDING"]]) {
+      throw new Error("Cannot approve it is not in pending status");
+    }
+
+    const approved = await db
+      .update(bookings)
+      .set({ status: "APPROVED", updatedAt: new Date() })
+      .where(eq(bookings.id, id))
+      .returning();
+
+    if (approved.length === 0) {
+      return null;
+    }
+
+    return this.mapRowToBooking(approved[0]);
   }
 }
 
