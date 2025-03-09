@@ -2,11 +2,11 @@ import db from "../db";
 import { bookings } from "../db/schema";
 import {
   Booking,
-  BookingStatus,
   InsertBooking,
   CreateBookingDTO,
+  stringToBookingStatus,
 } from "../types/index";
-import { eq } from "drizzle-orm";
+import { eq, and, or, sql } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
 import emailService from "../services/emailService";
 class BookingService {
@@ -24,7 +24,7 @@ class BookingService {
       },
       event: {
         title: row.eventTitle,
-        locationId: row.locationId,
+        locationId: row.eventLocationId,
         start: row.eventStart.toISOString(),
         end: row.eventEnd.toISOString(),
         details: row.eventDetails,
@@ -64,9 +64,7 @@ class BookingService {
       return null;
     }
 
-    const values = Object.values(BookingStatus);
-    //get PENDING status from ENUM as string
-    if (booking.status !== values[BookingStatus["PENDING"]]) {
+    if (booking.status !== ("PENDING" as keyof typeof stringToBookingStatus)) {
       throw new Error("Cannot approve it is not in pending status");
     }
 
@@ -88,15 +86,17 @@ class BookingService {
 
   async createBooking(booking: InsertBooking): Promise<Booking> {
     try {
-      const id = uuidv4();
-      const createdAt = new Date().toISOString();
-      const updatedAt = new Date().toISOString();
-
       const validatedData = CreateBookingDTO.parse(booking);
+
+      const hasConflict = await this.checkConflict(booking);
+
+      const status = hasConflict
+        ? ("DENIED" as keyof typeof stringToBookingStatus)
+        : ("PENDING" as keyof typeof stringToBookingStatus);
 
       const dbBooking = {
         orgId: validatedData.orgId,
-        status: validatedData.status,
+        status: status,
         contactName: validatedData.contact.name,
         contactEmail: validatedData.contact.email,
         eventTitle: validatedData.event.title,
@@ -117,7 +117,7 @@ class BookingService {
         createdAt: insertedRecord.createdAt.toISOString(),
         updatedAt: insertedRecord.updatedAt.toISOString(),
         orgId: insertedRecord.orgId,
-        status: "PENDING",
+        status: insertedRecord.status,
         contact: {
           name: insertedRecord.contactName,
           email: insertedRecord.contactEmail,
@@ -135,6 +135,39 @@ class BookingService {
       console.error("Error creating booking:", error);
       throw error;
     }
+  }
+
+  async checkConflict(newBooking: InsertBooking): Promise<boolean> {
+    const conflictCondition = and(
+      eq(bookings.status, "APPROVED"),
+      eq(bookings.eventLocationId, newBooking.event.locationId),
+      or(
+        and(
+          sql`${bookings.eventStart} >= ${newBooking.event.start}`,
+          sql`${bookings.eventStart} < ${newBooking.event.end}`
+        ),
+        and(
+          sql`${bookings.eventEnd} > ${newBooking.event.start}`,
+          sql`${bookings.eventEnd} <= ${newBooking.event.end}`
+        ),
+        and(
+          sql`${bookings.eventStart} <= ${newBooking.event.start}`,
+          sql`${bookings.eventEnd} >= ${newBooking.event.end}`
+        )
+      )
+    );
+
+    const conflictResult = await db
+      .select({
+        eventStart: bookings.eventStart,
+        eventEnd: bookings.eventEnd,
+        eventLocationId: bookings.eventLocationId,
+        status: bookings.status,
+      })
+      .from(bookings)
+      .where(conflictCondition);
+
+    return conflictResult.length > 0;
   }
 }
 

@@ -39,6 +39,14 @@ export const CreateBookingDTO = BookingSchema.omit({
   id: true,
   createdAt: true,
   updatedAt: true,
+  status: true,
 });
+
+export const stringToBookingStatus = {
+  PENDING: BookingStatus.PENDING,
+  APPROVED: BookingStatus.APPROVED,
+  DENIED: BookingStatus.DENIED,
+  CANCELLED: BookingStatus.CANCELLED,
+};
 
 export type InsertBooking = z.infer<typeof CreateBookingDTO>;
