@@ -1,7 +1,13 @@
 import db from "../db";
 import { bookings } from "../db/schema";
-import { Booking, BookingStatus } from "../types/index";
+import {
+  Booking,
+  BookingStatus,
+  InsertBooking,
+  CreateBookingDTO,
+} from "../types/index";
 import { eq } from "drizzle-orm";
+import { v4 as uuidv4 } from "uuid";
 class BookingService {
   // Map database row to Booking object
   private mapRowToBooking(row: any): Booking {
@@ -17,7 +23,7 @@ class BookingService {
       },
       event: {
         title: row.eventTitle,
-        locationId: row.event_location_id,
+        locationId: row.locationId,
         start: row.eventStart.toISOString(),
         end: row.eventEnd.toISOString(),
         details: row.eventDetails,
@@ -56,7 +62,6 @@ class BookingService {
     if (!booking) {
       return null;
     }
-    console.log(booking.status);
 
     const values = Object.values(BookingStatus);
     //get PENDING status from ENUM as string
@@ -75,6 +80,57 @@ class BookingService {
     }
 
     return this.mapRowToBooking(approved[0]);
+  }
+
+  async createBooking(booking: InsertBooking): Promise<Booking> {
+    try {
+      const id = uuidv4();
+      const createdAt = new Date().toISOString();
+      const updatedAt = new Date().toISOString();
+
+      const validatedData = CreateBookingDTO.parse(booking);
+
+      const dbBooking = {
+        orgId: validatedData.orgId,
+        status: validatedData.status,
+        contactName: validatedData.contact.name,
+        contactEmail: validatedData.contact.email,
+        eventTitle: validatedData.event.title,
+        eventLocationId: validatedData.event.locationId,
+        eventStart: new Date(validatedData.event.start),
+        eventEnd: new Date(validatedData.event.end),
+        eventDetails: validatedData.event.details,
+        requestNote: validatedData.requestNote,
+      };
+
+      const [insertedRecord] = await db
+        .insert(bookings)
+        .values(dbBooking)
+        .returning();
+
+      return {
+        id: insertedRecord.id,
+        createdAt: insertedRecord.createdAt.toISOString(),
+        updatedAt: insertedRecord.updatedAt.toISOString(),
+        orgId: insertedRecord.orgId,
+        status: "PENDING",
+        contact: {
+          name: insertedRecord.contactName,
+          email: insertedRecord.contactEmail,
+        },
+        event: {
+          title: insertedRecord.eventTitle,
+          locationId: insertedRecord.eventLocationId,
+          start: insertedRecord.eventStart.toISOString(),
+          end: insertedRecord.eventEnd.toISOString(),
+          details: insertedRecord.eventDetails,
+        },
+        requestNote: insertedRecord.requestNote || undefined,
+      };
+    } catch (error: any) {
+      console.error("Error creating booking:", error);
+      throw error;
+    }
   }
 }
 

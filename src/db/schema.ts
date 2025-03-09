@@ -28,11 +28,9 @@ export const bookings = pgTable("bookings", {
   contactName: varchar("contact_name").notNull(),
   contactEmail: varchar("contact_email").notNull(),
   eventTitle: varchar("event_title").notNull(),
-  event_location_id: uuid("event_location_id").notNull(),
+  eventLocationId: uuid("event_location_id").notNull(),
   eventStart: timestamp("event_start", { withTimezone: true }).notNull(),
   eventEnd: timestamp("event_end", { withTimezone: true }).notNull(),
   eventDetails: text("event_details").notNull(),
   requestNote: text("request_note"),
 });
-
-export type Booking = typeof bookings.$inferSelect;

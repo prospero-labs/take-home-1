@@ -73,6 +73,17 @@ class BookingController {
       res.status(500).json({ error: errorMessage });
     }
   }
+
+  async createBooking(req: Request, res: Response): Promise<void> {
+    try {
+      const data = req.body;
+      const createdBooking = await bookingService.createBooking(data);
+      res.status(201).json(createdBooking);
+    } catch (error: any) {
+      console.error("Error Creating booking:", error);
+      res.status(400).json({ error: error.message });
+    }
+  }
 }
 
 export default new BookingController();
