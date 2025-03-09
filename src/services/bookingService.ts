@@ -8,6 +8,7 @@ import {
 } from "../types/index";
 import { eq } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
+import emailService from "../services/emailService";
 class BookingService {
   // Map database row to Booking object
   private mapRowToBooking(row: any): Booking {
@@ -79,7 +80,10 @@ class BookingService {
       return null;
     }
 
-    return this.mapRowToBooking(approved[0]);
+    const approvedBooking = this.mapRowToBooking(approved[0]);
+    await emailService.sendApprovalEmail(approvedBooking);
+
+    return approvedBooking;
   }
 
   async createBooking(booking: InsertBooking): Promise<Booking> {
