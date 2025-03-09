@@ -1,0 +1,131 @@
+{
+	"info": {
+		"_postman_id": "77e038a2-b5cc-4b34-8572-1acaa2d2000a",
+		"name": "Prospero",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "31686881"
+	},
+	"item": [
+		{
+			"name": "getById",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:3000/bookings/1309b951-0fdb-45c8-87f4-d6a5ed20c22a",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "3000",
+					"path": [
+						"bookings",
+						"1309b951-0fdb-45c8-87f4-d6a5ed20c22a"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "getAll",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:3000/bookings/",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "3000",
+					"path": [
+						"bookings",
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "deleteById",
+			"request": {
+				"method": "DELETE",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:3000/bookings/a4133efe-eee2-4b07-80b4-75eacadf43b0",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "3000",
+					"path": [
+						"bookings",
+						"a4133efe-eee2-4b07-80b4-75eacadf43b0"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "approveById",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:3000/bookings/4217e9fe-8ab5-4ea8-ade5-cfaa493fddb7/approve",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "3000",
+					"path": [
+						"bookings",
+						"4217e9fe-8ab5-4ea8-ade5-cfaa493fddb7",
+						"approve"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "create",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{ \n\"orgId\": \"f6b8bc67-b0b2-4d56-a2b5-bb63a1e42b8c\",\n  \"status\": \"PENDING\",\n  \"contact\": {\n    \"name\": \"amelie Test\",\n    \"email\": \"amelie@example.com\"\n  },\n  \"event\": {\n    \"title\": \"Corporate Meeting\",\n    \"locationId\": \"e54f4b0c-9fa5-11eb-9a03-0242ac130003\",\n    \"start\": \"2025-03-10T09:00:00Z\",\n    \"end\": \"2025-03-10T11:00:00Z\",\n    \"details\": \"This is a detailed description of the event.\"\n  },\n  \"requestNote\": \"Please bring the documents.\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:3000/bookings",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "3000",
+					"path": [
+						"bookings"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
